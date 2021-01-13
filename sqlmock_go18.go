@@ -119,6 +119,8 @@ func (c *sqlmock) Ping(ctx context.Context) error {
 }
 
 func (c *sqlmock) ping() (*ExpectedPing, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedPing
 	var fulfilled int
 	var ok bool
@@ -164,6 +166,8 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 }
 
 func (c *sqlmock) ExpectPing() *ExpectedPing {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	if !c.monitorPings {
 		log.Println("ExpectPing will have no effect as monitoring pings is disabled. Use MonitorPingsOption to enable.")
 		return nil
@@ -196,6 +200,8 @@ func (c *sqlmock) Query(query string, args []driver.Value) (driver.Rows, error) 
 }
 
 func (c *sqlmock) query(query string, args []driver.NamedValue) (*ExpectedQuery, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedQuery
 	var fulfilled int
 	var ok bool
@@ -279,6 +285,8 @@ func (c *sqlmock) Exec(query string, args []driver.Value) (driver.Result, error)
 }
 
 func (c *sqlmock) exec(query string, args []driver.NamedValue) (*ExpectedExec, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedExec
 	var fulfilled int
 	var ok bool

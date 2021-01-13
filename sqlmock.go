@@ -14,6 +14,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -96,6 +97,7 @@ type sqlmock struct {
 	monitorPings bool
 
 	expected []expectation
+	mx       sync.Mutex
 }
 
 func (c *sqlmock) open(options []func(*sqlmock) error) (*sql.DB, Sqlmock, error) {
@@ -128,6 +130,8 @@ func (c *sqlmock) open(options []func(*sqlmock) error) (*sql.DB, Sqlmock, error)
 }
 
 func (c *sqlmock) ExpectClose() *ExpectedClose {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedClose{}
 	c.expected = append(c.expected, e)
 	return e
@@ -185,6 +189,8 @@ func (c *sqlmock) Close() error {
 }
 
 func (c *sqlmock) ExpectationsWereMet() error {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	for _, e := range c.expected {
 		e.Lock()
 		fulfilled := e.fulfilled()
@@ -225,6 +231,8 @@ func (c *sqlmock) Begin() (driver.Tx, error) {
 }
 
 func (c *sqlmock) begin() (*ExpectedBegin, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedBegin
 	var ok bool
 	var fulfilled int
@@ -260,12 +268,16 @@ func (c *sqlmock) begin() (*ExpectedBegin, error) {
 }
 
 func (c *sqlmock) ExpectBegin() *ExpectedBegin {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedBegin{}
 	c.expected = append(c.expected, e)
 	return e
 }
 
 func (c *sqlmock) ExpectExec(expectedSQL string) *ExpectedExec {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedExec{}
 	e.expectSQL = expectedSQL
 	e.converter = c.converter
@@ -287,6 +299,8 @@ func (c *sqlmock) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (c *sqlmock) prepare(query string) (*ExpectedPrepare, error) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedPrepare
 	var fulfilled int
 	var ok bool
@@ -334,12 +348,16 @@ func (c *sqlmock) prepare(query string) (*ExpectedPrepare, error) {
 }
 
 func (c *sqlmock) ExpectPrepare(expectedSQL string) *ExpectedPrepare {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedPrepare{expectSQL: expectedSQL, mock: c}
 	c.expected = append(c.expected, e)
 	return e
 }
 
 func (c *sqlmock) ExpectQuery(expectedSQL string) *ExpectedQuery {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedQuery{}
 	e.expectSQL = expectedSQL
 	e.converter = c.converter
@@ -348,12 +366,16 @@ func (c *sqlmock) ExpectQuery(expectedSQL string) *ExpectedQuery {
 }
 
 func (c *sqlmock) ExpectCommit() *ExpectedCommit {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedCommit{}
 	c.expected = append(c.expected, e)
 	return e
 }
 
 func (c *sqlmock) ExpectRollback() *ExpectedRollback {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	e := &ExpectedRollback{}
 	c.expected = append(c.expected, e)
 	return e
@@ -361,6 +383,8 @@ func (c *sqlmock) ExpectRollback() *ExpectedRollback {
 
 // Commit meets http://golang.org/pkg/database/sql/driver/#Tx
 func (c *sqlmock) Commit() error {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedCommit
 	var fulfilled int
 	var ok bool
@@ -396,6 +420,8 @@ func (c *sqlmock) Commit() error {
 
 // Rollback meets http://golang.org/pkg/database/sql/driver/#Tx
 func (c *sqlmock) Rollback() error {
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	var expected *ExpectedRollback
 	var fulfilled int
 	var ok bool
